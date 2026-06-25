@@ -51,12 +51,12 @@
            fill="#0a0420" filter="url(#softglow)" opacity="0.8"/>
   <!-- Sclera -->
   <ellipse cx="200" cy="72" rx="38" ry="24"
-           fill="#0c0528" stroke="#3a1a60" stroke-width="1.4" filter="url(#glow)"/>
+           fill="#0c0528" stroke="#3a1a60" stroke-width="2.8" filter="url(#glow)"/>
   <!-- Iris rings -->
   <ellipse cx="200" cy="72" rx="24" ry="18"
-           fill="#080320" stroke="#5a2a90" stroke-width="1.2"/>
+           fill="#080320" stroke="#5a2a90" stroke-width="2.2"/>
   <ellipse cx="200" cy="72" rx="16" ry="12"
-           fill="#050215" stroke="#7a3ab0" stroke-width="0.8"/>
+           fill="#050215" stroke="#7a3ab0" stroke-width="1.6"/>
   <!-- Vertical slit pupil -->
   <ellipse cx="200" cy="72" rx="5"   ry="10" fill="#010008"/>
   <ellipse cx="200" cy="72" rx="2.5" ry="7.5" fill="#2a0050"/>
@@ -68,37 +68,37 @@
   <!-- ── Tentacles ──────────────────────────────────────────────────────── -->
   <!-- Tentacle 1: upper-left -->
   <path d="M 196,52 C 178,36 148,28 126,42 C 115,50 120,62 128,58"
-        stroke="#5a2a90" stroke-width="2.4" fill="none" stroke-linecap="round"
+        stroke="#5a2a90" stroke-width="4.2" fill="none" stroke-linecap="round"
         filter="url(#glow)" opacity="0.88"/>
   <!-- Tentacle 2: left, curling down -->
   <path d="M 192,78 C 168,84 144,96 138,120 C 134,132 142,138 147,130"
-        stroke="#5a2a90" stroke-width="2.1" fill="none" stroke-linecap="round" opacity="0.80"/>
+        stroke="#5a2a90" stroke-width="3.6" fill="none" stroke-linecap="round" opacity="0.80"/>
   <!-- Tentacle 3: upper-right -->
   <path d="M 204,52 C 222,36 252,28 274,42 C 285,50 280,62 272,58"
-        stroke="#5a2a90" stroke-width="2.4" fill="none" stroke-linecap="round"
+        stroke="#5a2a90" stroke-width="4.2" fill="none" stroke-linecap="round"
         filter="url(#glow)" opacity="0.88"/>
   <!-- Tentacle 4: right, curling down -->
   <path d="M 208,78 C 232,84 256,96 262,120 C 266,132 258,138 253,130"
-        stroke="#5a2a90" stroke-width="2.1" fill="none" stroke-linecap="round" opacity="0.80"/>
+        stroke="#5a2a90" stroke-width="3.6" fill="none" stroke-linecap="round" opacity="0.80"/>
   <!-- Tentacle 5: downward centre -->
   <path d="M 200,92 C 197,108 205,122 200,134 C 197,140 193,138 195,133"
-        stroke="#5a2a90" stroke-width="1.9" fill="none" stroke-linecap="round" opacity="0.72"/>
+        stroke="#5a2a90" stroke-width="3.2" fill="none" stroke-linecap="round" opacity="0.72"/>
   <!-- Tentacle 6: far left, lower -->
   <path d="M 188,82 C 158,95 132,118 130,140 C 128,148 134,150 138,144"
-        stroke="#3a1a70" stroke-width="1.6" fill="none" stroke-linecap="round" opacity="0.60"/>
+        stroke="#3a1a70" stroke-width="2.8" fill="none" stroke-linecap="round" opacity="0.60"/>
   <!-- Tentacle 7: far right, lower -->
   <path d="M 212,82 C 242,95 268,118 270,140 C 272,148 266,150 262,144"
-        stroke="#3a1a70" stroke-width="1.6" fill="none" stroke-linecap="round" opacity="0.60"/>
+        stroke="#3a1a70" stroke-width="2.8" fill="none" stroke-linecap="round" opacity="0.60"/>
 
   <!-- Sucker dots -->
   <g fill="#8844cc" opacity="0.55">
-    <circle cx="162" cy="36" r="2"/>
-    <circle cx="142" cy="50" r="1.6"/>
-    <circle cx="155" cy="108" r="1.6"/>
-    <circle cx="238" cy="36" r="2"/>
-    <circle cx="258" cy="50" r="1.6"/>
-    <circle cx="245" cy="108" r="1.6"/>
-    <circle cx="200" cy="118" r="1.6"/>
+    <circle cx="162" cy="36" r="3.2"/>
+    <circle cx="142" cy="50" r="2.8"/>
+    <circle cx="155" cy="108" r="2.8"/>
+    <circle cx="238" cy="36" r="3.2"/>
+    <circle cx="258" cy="50" r="2.8"/>
+    <circle cx="245" cy="108" r="2.8"/>
+    <circle cx="200" cy="118" r="2.8"/>
   </g>
 
   <!-- ── Volcano plot (DEG visualization) ────────────────────────────────── -->
