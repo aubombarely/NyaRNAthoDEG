@@ -1,10 +1,14 @@
+<p align="center">
 <img src="assets/NyaRNAthoDEG_logo.svg" width="260"/>
+</p>
 
+<p align="center">
 <img src="https://img.shields.io/badge/version-v0.1.0-teal"/>
 <img src="https://img.shields.io/badge/python-3.10%2B-blue"/>
 <img src="https://img.shields.io/badge/R-4.3%2B-276DC3"/>
 <img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey"/>
 <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-v0.1.0-orange"/></a>
+</p>
 
 ---
 
