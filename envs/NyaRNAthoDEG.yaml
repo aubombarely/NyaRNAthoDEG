@@ -1,0 +1,22 @@
+name: NyaRNAthoDEG
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.10
+  - fastqc
+  - fastp
+  - multiqc
+  - star
+  - samtools
+  - htseq
+  - r-base>=4.3
+  - bioconductor-deseq2
+  - bioconductor-topgo
+  - r-ggplot2
+  - r-pheatmap
+  - r-rcolorbrewer
+  - r-upsetr
+  - r-optparse
+  - codecarbon          # optional; enables carbon footprint tracking

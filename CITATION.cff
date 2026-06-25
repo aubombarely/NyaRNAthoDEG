@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "NyaRNAthoDEG"
+abstract: >
+  NyaRNAthoDEG is an end-to-end RNA-seq pipeline covering read QC (FastQC,
+  fastp), splice-aware alignment (STAR), gene counting (HTSeq), differential
+  expression analysis (DESeq2), and GO enrichment (topGO with Homology-based
+  and FANTASIA annotations). Named after Nyarlathotep — the Crawling Chaos —
+  plus RNA and DEG (differentially expressed genes).
+authors:
+  - family-names: Bombarely
+    given-names: Aureliano
+    email: aubombarely@gmail.com
+    orcid: "https://orcid.org/0000-0001-6257-8914"
+version: "v0.1.0"
+date-released: "2026-06-25"
+license: MIT
+repository-code: "https://github.com/aubombarely/NyaRNAthoDEG"
+keywords:
+  - RNA-seq
+  - differential expression
+  - DESeq2
+  - topGO
+  - STAR
+  - HTSeq
+  - plant genomics
+  - transcriptomics
