@@ -1,0 +1,9 @@
+SampleName	StartingModule	FilePath	DevelopmentalStage	Temperature	Replicate
+Stage1_L_rep1	7	/Users/aubombarely/Documents/USA_work/AI/agent_test/NyaRNAthoDEG/test/htseq_counts/Stage1_L_rep1.htseq.counts	Stage1	L	1
+Stage1_L_rep2	7	/Users/aubombarely/Documents/USA_work/AI/agent_test/NyaRNAthoDEG/test/htseq_counts/Stage1_L_rep2.htseq.counts	Stage1	L	2
+Stage1_H_rep1	7	/Users/aubombarely/Documents/USA_work/AI/agent_test/NyaRNAthoDEG/test/htseq_counts/Stage1_H_rep1.htseq.counts	Stage1	H	1
+Stage1_H_rep2	7	/Users/aubombarely/Documents/USA_work/AI/agent_test/NyaRNAthoDEG/test/htseq_counts/Stage1_H_rep2.htseq.counts	Stage1	H	2
+Stage2_L_rep1	7	/Users/aubombarely/Documents/USA_work/AI/agent_test/NyaRNAthoDEG/test/htseq_counts/Stage2_L_rep1.htseq.counts	Stage2	L	1
+Stage2_L_rep2	7	/Users/aubombarely/Documents/USA_work/AI/agent_test/NyaRNAthoDEG/test/htseq_counts/Stage2_L_rep2.htseq.counts	Stage2	L	2
+Stage2_H_rep1	7	/Users/aubombarely/Documents/USA_work/AI/agent_test/NyaRNAthoDEG/test/htseq_counts/Stage2_H_rep1.htseq.counts	Stage2	H	1
+Stage2_H_rep2	7	/Users/aubombarely/Documents/USA_work/AI/agent_test/NyaRNAthoDEG/test/htseq_counts/Stage2_H_rep2.htseq.counts	Stage2	H	2

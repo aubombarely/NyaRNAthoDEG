@@ -1,0 +1,11 @@
+##description: minimal dummy GTF for NyaRNAthoDEG test
+Chr1	.	gene	1	1801	.	+	.	gene_id "SMELv4.1_00001"; gene_name "SMELv4.1_00001";
+Chr1	.	gene	2001	3801	.	+	.	gene_id "SMELv4.1_00002"; gene_name "SMELv4.1_00002";
+Chr1	.	gene	4001	5801	.	+	.	gene_id "SMELv4.1_00003"; gene_name "SMELv4.1_00003";
+Chr1	.	gene	6001	7801	.	+	.	gene_id "SMELv4.1_00004"; gene_name "SMELv4.1_00004";
+Chr1	.	gene	8001	9801	.	+	.	gene_id "SMELv4.1_00005"; gene_name "SMELv4.1_00005";
+Chr1	.	gene	10001	11801	.	+	.	gene_id "SMELv4.1_00006"; gene_name "SMELv4.1_00006";
+Chr1	.	gene	12001	13801	.	+	.	gene_id "SMELv4.1_00007"; gene_name "SMELv4.1_00007";
+Chr1	.	gene	14001	15801	.	+	.	gene_id "SMELv4.1_00008"; gene_name "SMELv4.1_00008";
+Chr1	.	gene	16001	17801	.	+	.	gene_id "SMELv4.1_00009"; gene_name "SMELv4.1_00009";
+Chr1	.	gene	18001	19801	.	+	.	gene_id "SMELv4.1_00010"; gene_name "SMELv4.1_00010";

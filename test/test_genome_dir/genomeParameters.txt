@@ -1,0 +1,1 @@
+# dummy STAR genome dir for NyaRNAthoDEG test
