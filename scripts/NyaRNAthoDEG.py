@@ -58,6 +58,24 @@ def _banner(title: str) -> None:
     _log(f"└{bar}┘")
 
 
+_QUOTE_LINES = [
+    "\"And through this revolting graveyard of the universe the muffled,",
+    " maddening beating of drums, and thin, monotonous whine of blasphemous",
+    " flutes from inconceivable, unlighted chambers beyond Time; the blind,",
+    " voiceless, mindless gargoyles whose soul and messenger is Nyarlathotep.\"",
+    "                                  — H.P. Lovecraft, Nyarlathotep (1920)",
+]
+
+def _print_quote() -> None:
+    width = max(len(l) for l in _QUOTE_LINES) + 4
+    border = "─" * width
+    _log(f"┌{border}┐")
+    for line in _QUOTE_LINES:
+        padding = width - len(line) - 1
+        _log(f"│ {line}{' ' * padding}│")
+    _log(f"└{border}┘")
+
+
 # ── external tool helpers ─────────────────────────────────────────────────────
 
 def _require_tool(name: str) -> str:
@@ -386,6 +404,7 @@ def run_deseq2(samples: list, condition_cols: list,
 # ── main ──────────────────────────────────────────────────────────────────────
 
 def main() -> None:
+    _print_quote()
     ap = argparse.ArgumentParser(
         prog="NyaRNAthoDEG",
         description="RNA-seq pipeline: QC → fastp → STAR → HTSeq → DESeq2/topGO",
