@@ -161,7 +161,8 @@ if (do_stratify) {
 }
 
 # AHRD annotation: columns 1 (GeneID), 4 (Description), 6 (GO)
-annot_ahrd_raw     <- read.delim(opt$annot_ahrd, stringsAsFactors=FALSE)
+# skip=2: line 1 is "# AHRD-Version X.Y" (comment), line 2 is blank, line 3 is the real header
+annot_ahrd_raw     <- read.delim(opt$annot_ahrd, skip=2, stringsAsFactors=FALSE)
 annot_by_hom_table <- annot_ahrd_raw[, c(1, 4, 6)]
 colnames(annot_by_hom_table) <- c("GeneID", "Description", "GO_by_Homol")
 
