@@ -1,5 +1,26 @@
 # Changelog
 
+## [v0.1.1] — 2026-07-07
+
+### Fixed
+- **Module 7 (DESeq2)** — AHRD annotation files were not parsed correctly
+  when the file begins with the standard `# AHRD-Version X.Y` comment line
+  and a blank line before the tab-separated header. `read.delim` was treating
+  the comment as the header (1 column) and failing with "more columns than
+  column names". Fixed by adding `skip=2` to jump over the two preamble lines.
+
+### Added
+- **Module 7 (DESeq2)** — two new summary TSVs written to the output directory:
+  - `{prefix}_sample_stats.tsv` — per-sample library metrics: raw total
+    counts, genes detected, genes above `--min_counts`, DESeq2 size factor,
+    and size-factor-normalised total counts
+  - `{prefix}_DEG_summary.tsv` — per-comparison DE metrics: n tested, n DEG,
+    n up-regulated, n down-regulated, n genes with NA padj, and % DEG;
+    one row for the full model plus one row per stratum when `--deseq_stratify`
+    is used
+
+---
+
 ## [v0.1.0] — 2026-06-25
 
 ### Added

@@ -3,11 +3,11 @@
 </p>
 
 <p align="center">
-<img src="https://img.shields.io/badge/version-v0.1.0-teal"/>
+<img src="https://img.shields.io/badge/version-v0.1.1-teal"/>
 <img src="https://img.shields.io/badge/python-3.10%2B-blue"/>
 <img src="https://img.shields.io/badge/R-4.3%2B-276DC3"/>
 <img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey"/>
-<a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-v0.1.0-orange"/></a>
+<a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-v0.1.1-orange"/></a>
 </p>
 
 ---
@@ -250,6 +250,8 @@ Per-sample entry points are controlled instead via `StartingModule` in the sampl
 │   │   └── multiqc_report.html
 │   ├── mod07_deseq2/
 │   │   ├── {prefix}_DEG_annotated.csv       normalized counts + DE results + annotations
+│   │   ├── {prefix}_sample_stats.tsv        per-sample library metrics (see below)
+│   │   ├── {prefix}_DEG_summary.tsv         per-comparison DEG counts (see below)
 │   │   ├── {prefix}_PCA.pdf/.png            PCA plot (VST-normalized)
 │   │   ├── {prefix}_SampleDist_heatmap.pdf  sample distance heatmap
 │   │   ├── {prefix}_UpSet.pdf               DEG overlap across strata
@@ -280,6 +282,36 @@ The main output `{prefix}_DEG_annotated.csv` contains:
 - **Per-stratum DE results** — `{stratum}_baseMean`, `{stratum}_log2FoldChange`, ..., `{stratum}_padj` (one block per level of `--deseq_stratify`)
 - **AHRD annotation** — `Description`, `GO_by_Homol`
 - **FANTASIA annotation** — `GO_by_FANTASIA`
+
+### Sample statistics table
+
+`{prefix}_sample_stats.tsv` contains one row per sample. Counts are captured
+**before** the `--min_counts` filter so the table reflects the original library.
+
+| Column | Description |
+|---|---|
+| `SampleName` | sample identifier |
+| *condition columns* | one column per condition factor from the sample sheet |
+| `raw_total_counts` | sum of all raw HTSeq counts |
+| `genes_detected` | number of genes with at least one count |
+| `genes_above_mincount` | number of genes at or above `--min_counts` |
+| `size_factor` | DESeq2 size-factor normalisation coefficient |
+| `norm_total_counts` | raw total counts divided by the size factor |
+
+### DEG summary table
+
+`{prefix}_DEG_summary.tsv` contains one row per comparison: the full model
+plus one row per stratum when `--deseq_stratify` is used.
+
+| Column | Description |
+|---|---|
+| `Comparison` | `Full_model` or the stratum name |
+| `n_tested` | genes tested after `--min_counts` filtering |
+| `n_DEG` | significant DEGs (padj < `--padj`) |
+| `n_up` | up-regulated DEGs (log2FoldChange > 0) |
+| `n_down` | down-regulated DEGs (log2FoldChange < 0) |
+| `n_NA_padj` | genes excluded by DESeq2 (outliers or all-zero counts) |
+| `pct_DEG` | percentage of tested genes that are DEG |
 
 ---
 
