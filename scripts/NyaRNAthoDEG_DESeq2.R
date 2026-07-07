@@ -192,6 +192,11 @@ total_count <- sum(counts(dds_full))
 cat(sprintf("  Total genes  : %d\n", total_genes))
 cat(sprintf("  Total counts : %d\n", total_count))
 
+# Capture per-sample metrics before low-count filtering (used in section 11)
+pre_raw_counts    <- colSums(counts(dds_full))
+pre_genes_detect  <- colSums(counts(dds_full) > 0)
+pre_genes_above   <- colSums(counts(dds_full) >= opt$min_counts)
+
 
 # ── 3. Filter low-count genes ─────────────────────────────────────────────────
 cat(sprintf("\n[3] Filtering genes with total counts < %d\n", opt$min_counts))
@@ -426,6 +431,56 @@ if (length(sig_gene_lists) > 0) {
 } else {
   cat("  No significant gene lists — skipping topGO\n")
 }
+
+
+# ── 11. Summary tables ────────────────────────────────────────────────────────
+cat("\n[11] Writing summary tables\n")
+
+# — 11a. Per-sample statistics —
+sf_vec  <- sizeFactors(dds_full)
+s_names <- colnames(dds_full)
+
+sample_stat_tbl <- data.frame(SampleName=s_names, stringsAsFactors=FALSE)
+for (col in condition_cols) {
+  sample_stat_tbl[[col]] <- as.character(colData(dds_full)[[col]])
+}
+sample_stat_tbl$raw_total_counts     <- as.integer(pre_raw_counts[s_names])
+sample_stat_tbl$genes_detected       <- as.integer(pre_genes_detect[s_names])
+sample_stat_tbl$genes_above_mincount <- as.integer(pre_genes_above[s_names])
+sample_stat_tbl$size_factor          <- round(sf_vec[s_names], 4)
+sample_stat_tbl$norm_total_counts    <- as.integer(round(pre_raw_counts[s_names] / sf_vec[s_names]))
+
+sample_stat_path <- file.path(opt$output_dir, paste0(opt$prefix, "_sample_stats.tsv"))
+write.table(sample_stat_tbl, sample_stat_path, sep="\t", quote=FALSE, row.names=FALSE)
+cat(sprintf("  Written : %s\n", sample_stat_path))
+
+# — 11b. DEG summary per comparison —
+.deg_stats <- function(res_obj, label) {
+  n_tested <- nrow(res_obj)
+  n_deg    <- sum(!is.na(res_obj$padj) & res_obj$padj < opt$padj)
+  n_up     <- sum(!is.na(res_obj$padj) & res_obj$padj < opt$padj &
+                  !is.na(res_obj$log2FoldChange) & res_obj$log2FoldChange > 0)
+  data.frame(
+    Comparison = label,
+    n_tested   = n_tested,
+    n_DEG      = n_deg,
+    n_up       = n_up,
+    n_down     = n_deg - n_up,
+    n_NA_padj  = sum(is.na(res_obj$padj)),
+    pct_DEG    = round(100 * n_deg / n_tested, 2),
+    stringsAsFactors = FALSE
+  )
+}
+
+deg_rows <- list(.deg_stats(res_full, "Full_model"))
+for (stratum in names(strat_res_list)) {
+  deg_rows[[length(deg_rows) + 1]] <- .deg_stats(strat_res_list[[stratum]],
+                                                   as.character(stratum))
+}
+deg_summary_tbl  <- do.call(rbind, deg_rows)
+deg_summary_path <- file.path(opt$output_dir, paste0(opt$prefix, "_DEG_summary.tsv"))
+write.table(deg_summary_tbl, deg_summary_path, sep="\t", quote=FALSE, row.names=FALSE)
+cat(sprintf("  Written : %s\n", deg_summary_path))
 
 
 # ── Summary ───────────────────────────────────────────────────────────────────
