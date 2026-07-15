@@ -5,6 +5,7 @@ channels:
   - defaults
 dependencies:
   - python>=3.10
+  - jq                  # required by bioconductor-go.db's post-link script (not a declared dep upstream)
   - fastqc
   - fastp
   - multiqc

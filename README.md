@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-<img src="https://img.shields.io/badge/version-v0.1.1-teal"/>
+<img src="https://img.shields.io/badge/version-v0.1.2-teal"/>
 <img src="https://img.shields.io/badge/python-3.10%2B-blue"/>
 <img src="https://img.shields.io/badge/R-4.3%2B-276DC3"/>
 <img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey"/>
@@ -52,11 +52,23 @@ conda env create -f envs/NyaRNAthoDEG.yaml
 conda activate NyaRNAthoDEG
 ```
 
+> **If `bioconductor-go.db` fails to install** with a `LinkError` and
+> `yq: Error starting jq: FileNotFoundError` in the post-link script output:
+> `jq` is required by that post-link script but isn't a declared dependency
+> upstream, so a single-pass `conda env create` doesn't guarantee it's linked
+> before `go.db`'s script runs. Install `jq` into the env first, then update:
+> ```bash
+> conda env remove -n NyaRNAthoDEG   # if a partial env was left behind
+> conda create -n NyaRNAthoDEG -c bioconda -c conda-forge jq -y
+> conda env update -n NyaRNAthoDEG -f envs/NyaRNAthoDEG.yaml
+> ```
+
 ### Dependencies
 
 | Tool | Version | Purpose |
 |---|---|---|
 | Python | ≥ 3.10 | pipeline orchestration |
+| jq | any | required by `bioconductor-go.db`'s post-link script |
 | FastQC | any | read quality reports |
 | fastp | any | adapter trimming and QC |
 | MultiQC | any | aggregated QC report |

@@ -1,5 +1,16 @@
 # Changelog
 
+## [v0.1.2] — 2026-07-15
+
+### Fixed
+- **Environment installation** — `conda env create` could fail with a
+  `LinkError` on `bioconductor-go.db` (`yq: Error starting jq:
+  FileNotFoundError`). `jq` is required by that package's post-link script
+  but isn't a declared dependency upstream. Added `jq` to
+  `envs/NyaRNAthoDEG.yaml` and documented a two-step install
+  (`conda create` with `jq` first, then `conda env update`) in the README to
+  guarantee link order.
+
 ## [v0.1.1] — 2026-07-07
 
 ### Fixed
