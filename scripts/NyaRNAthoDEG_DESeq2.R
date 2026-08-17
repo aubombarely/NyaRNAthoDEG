@@ -64,6 +64,8 @@ option_list <- list(
               help="Column to stratify sub-analyses by"),
   make_option("--deseq_contrast", type="character", default="",
               help="Column to contrast within each stratum (auto-inferred if omitted)"),
+  make_option("--deseq_ref_level", type="character", default="",
+              help="Reference/baseline level for the contrast column (e.g. 'WT'), so log2FoldChange = log2(other_level / this_level). Without this, R's factor() defaults to alphabetical order, which silently determines the reference level and therefore the sign of every log2FoldChange -- this has caused real, hard-to-detect inverted up/down calls in past reports. The resolved contrast direction is always printed to the log regardless of whether this is set."),
   make_option("--padj",           type="double",    default=0.05),
   make_option("--min_counts",     type="integer",   default=10L),
   make_option("--go_categories",  type="character", default="BP"),
@@ -160,6 +162,57 @@ if (do_stratify) {
   cat(sprintf("  Strata           : %s\n", paste(strata, collapse=", ")))
 }
 
+# ── Resolve and lock in the contrast direction ────────────────────────────────
+# DESeq2's results() with no explicit contrast= picks the LAST coefficient in
+# resultsNames(dds), which for a two-level factor is <col>_<level2>_vs_<level1>
+# using whatever order factor() assigned the levels -- alphabetical by default,
+# with NO warning that this determines the sign of every log2FoldChange in the
+# output. Silently trusting that default has produced real, wrong-direction
+# up/down calls in past reports (log2(WT/MPO) reported and interpreted as if
+# it were log2(MPO/WT)). To make the direction impossible to get wrong again:
+#   1. A single "primary contrast column" is resolved even when --deseq_stratify
+#      is not used (the last design term -- the same column DESeq2's own
+#      default coefficient selection would pick), so this fix also protects
+#      the (unstratified) full-model result.
+#   2. --deseq_ref_level lets the user pin which level is the reference
+#      (baseline/denominator); every results() call below then uses an
+#      EXPLICIT contrast=c(col, other, ref) instead of relying on the default
+#      coefficient, so the direction is deterministic and self-documenting
+#      regardless of factor()'s alphabetical default.
+#   3. The resolved direction is always printed, whether or not
+#      --deseq_ref_level was given, so a reversed convention is visible in
+#      the log instead of only discoverable by cross-checking raw counts.
+primary_contrast_col <- if (do_stratify) contrast_col else tail(design_terms, 1)
+ref_level   <- NULL
+other_level <- NULL
+if (!is.null(primary_contrast_col)) {
+  col_levels <- levels(sampleTable[[primary_contrast_col]])
+  if (length(col_levels) == 2) {
+    if (nchar(opt$deseq_ref_level) > 0) {
+      if (!(opt$deseq_ref_level %in% col_levels)) {
+        stop(sprintf("--deseq_ref_level '%s' is not a level of '%s' (levels: %s)",
+                     opt$deseq_ref_level, primary_contrast_col,
+                     paste(col_levels, collapse=", ")))
+      }
+      sampleTable[[primary_contrast_col]] <- relevel(
+        sampleTable[[primary_contrast_col]], ref=opt$deseq_ref_level)
+      col_levels <- levels(sampleTable[[primary_contrast_col]])
+    }
+    ref_level   <- col_levels[1]
+    other_level <- col_levels[2]
+    cat(sprintf("\n  Contrast direction : log2( %s / %s )  [%s]\n",
+                other_level, ref_level,
+                if (nchar(opt$deseq_ref_level) > 0)
+                  "reference set via --deseq_ref_level"
+                else
+                  "reference = alphabetically first level -- pass --deseq_ref_level to control this explicitly"))
+    cat(sprintf("  -> positive log2FoldChange means higher expression in '%s'\n", other_level))
+  } else {
+    cat(sprintf("\n  NOTE: '%s' has %d levels (not 2) -- contrast direction not auto-resolved; results() will use its own default coefficient. Inspect resultsNames(dds) if reporting up/down direction.\n",
+                primary_contrast_col, length(col_levels)))
+  }
+}
+
 # AHRD annotation: columns 1 (GeneID), 4 (Description), 6 (GO)
 # skip=2: line 1 is "# AHRD-Version X.Y" (comment), line 2 is blank, line 3 is the real header
 annot_ahrd_raw     <- read.delim(opt$annot_ahrd, skip=2, stringsAsFactors=FALSE)
@@ -208,7 +261,16 @@ cat(sprintf("  Genes after filter : %d  (%.1f%% retained)\n",
 # ── 4. Full-model DESeq2 ──────────────────────────────────────────────────────
 cat(sprintf("\n[4] Full-model DESeq2 (%s)\n", opt$deseq_design))
 dds_full  <- DESeq(dds_full, quiet=TRUE)
-res_full  <- results(dds_full, alpha=opt$padj)
+# Explicit contrast (see "Resolve and lock in the contrast direction" above)
+# whenever a 2-level primary contrast column was resolved -- deterministic
+# regardless of factor()'s alphabetical default. Falls back to results()'s
+# own default coefficient only when no such column could be resolved (e.g.
+# a >2-level factor), same as before this fix.
+res_full  <- if (!is.null(ref_level)) {
+  results(dds_full, contrast=c(primary_contrast_col, other_level, ref_level), alpha=opt$padj)
+} else {
+  results(dds_full, alpha=opt$padj)
+}
 n_sig_all <- sum(res_full$padj < opt$padj, na.rm=TRUE)
 cat(sprintf("  DEGs (padj < %.2f) : %d\n", opt$padj, n_sig_all))
 
@@ -227,7 +289,11 @@ if (do_stratify) {
     dds_s        <- dds_full[, sel]
     design(dds_s) <- strat_formula
     dds_s         <- DESeq(dds_s, quiet=TRUE)
-    res_s         <- results(dds_s, alpha=opt$padj)
+    res_s         <- if (!is.null(ref_level)) {
+      results(dds_s, contrast=c(contrast_col, other_level, ref_level), alpha=opt$padj)
+    } else {
+      results(dds_s, alpha=opt$padj)
+    }
     n_sig_s       <- sum(res_s$padj < opt$padj, na.rm=TRUE)
     cat(sprintf("    DEGs (padj < %.2f) : %d\n", opt$padj, n_sig_s))
     strat_res_list[[stratum]] <- res_s

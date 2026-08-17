@@ -28,7 +28,7 @@ Example sample sheet:
   sampleC     7               /data/C.counts                       Stage2              L            2
 """
 
-VERSION = "v0.1.0"
+VERSION = "v0.2.0"
 
 import argparse, csv, getpass, json, os, platform, warnings
 import resource, shutil, subprocess, sys, time
@@ -345,6 +345,7 @@ def run_deseq2(samples: list, condition_cols: list,
                annot_ahrd: Path, annot_fantasia: Path,
                prefix: str, padj: float, min_counts: int,
                deseq_design: str, deseq_stratify: str, deseq_contrast: str,
+               deseq_ref_level: str,
                go_categories: str, go_pval: float,
                r_script: Path, force: bool) -> None:
     rscript   = _require_tool("Rscript")
@@ -397,6 +398,8 @@ def run_deseq2(samples: list, condition_cols: list,
         cmd += ["--deseq_stratify", deseq_stratify]
     if deseq_contrast:
         cmd += ["--deseq_contrast", deseq_contrast]
+    if deseq_ref_level:
+        cmd += ["--deseq_ref_level", deseq_ref_level]
 
     _run(cmd)
 
@@ -471,6 +474,14 @@ StartingModule values
                     help=("Factor to contrast within each stratum. Defaults to the other "
                           "factor in --deseq_design when omitted. "
                           "Example: --deseq_contrast Temperature"))
+    ap.add_argument("--deseq_ref_level", default="",
+                    help=("Reference/baseline level of the contrast factor (e.g. 'WT'), "
+                          "so log2FoldChange = log2(other_level / this_level). Without "
+                          "this, R's factor() defaults to alphabetical order, which "
+                          "silently determines the sign of every log2FoldChange -- set "
+                          "this explicitly rather than relying on that default. The "
+                          "resolved direction is always printed to the log either way. "
+                          "Example: --deseq_ref_level WT"))
 
     # STAR
     ap.add_argument("--star_min_intron", type=int, default=20,
@@ -599,6 +610,7 @@ StartingModule values
         if args.deseq_stratify:
             _log(f"  Stratify by       : {args.deseq_stratify}")
             _log(f"  Contrast          : {args.deseq_contrast or '(inferred)'}")
+        _log(f"  Contrast ref level : {args.deseq_ref_level or '(alphabetically first level -- set --deseq_ref_level to control this explicitly)'}")
         _log("  Steps that would run:")
         if not args.skip_module1 and pre_samples:
             _log(f"    [1] FastQC pre-trim  →  workdir/mod01_fastqc_pre/  ({len(pre_samples)} sample(s))")
@@ -748,6 +760,7 @@ StartingModule values
                    args.annot_ahrd, args.annot_fantasia,
                    prefix, args.padj, args.min_counts,
                    args.deseq_design, args.deseq_stratify, args.deseq_contrast,
+                   args.deseq_ref_level,
                    args.go_categories, args.go_pval,
                    r_script, args.force)
 
@@ -786,6 +799,7 @@ StartingModule values
             "deseq_design":      args.deseq_design,
             "deseq_stratify":    args.deseq_stratify,
             "deseq_contrast":    args.deseq_contrast,
+            "deseq_ref_level":   args.deseq_ref_level,
             "padj":              args.padj,
             "min_counts":        args.min_counts,
             "go_pval":           args.go_pval,

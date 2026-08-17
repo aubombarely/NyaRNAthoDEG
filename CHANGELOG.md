@@ -1,5 +1,56 @@
 # Changelog
 
+## [v0.2.0] — 2026-08-17
+
+### Fixed
+
+- **log2FoldChange sign was reversed relative to what every report assumed.**
+  `NyaRNAthoDEG_DESeq2.R` builds condition-column factors with plain
+  `factor()` — no explicit `levels=`, no `relevel()` — and calls `results()`
+  with no explicit `contrast=` anywhere (full model or stratified). R's
+  `factor()` defaults to alphabetical level order, and DESeq2's `results()`
+  with no `contrast=` picks the coefficient for the LAST (non-reference)
+  level vs. the first. For a `Mutant` column with values `MPO`/`WT`, that
+  silently made `MPO` (alphabetically first) the reference, so every
+  `log2FoldChange` was actually `log2(WT/MPO)` — the opposite of what every
+  written report assumed ("positive = higher in MPO"). Confirmed against
+  `resultsNames(dds)` (literally `Mutant_WT_vs_MPO`) and independently
+  against raw counts on two genes with unambiguous, large expression
+  differences: both had their reported direction backwards. This affected
+  every up/down call in the full model, and every stratum, in every run to
+  date -- not a stratum-specific or edge-case bug.
+
+### Added
+
+- **`--deseq_ref_level`**: pins which level of the contrast column is the
+  reference/baseline, so `log2FoldChange = log2(other_level / this_level)`
+  is deterministic and matches what you tell it to mean, instead of
+  silently depending on alphabetical factor ordering. Implemented via an
+  explicit `contrast=c(col, other, ref)` in every `results()` call (full
+  model and each stratum) rather than relying on DESeq2's default
+  coefficient selection.
+- **The resolved contrast direction is now always printed to the log**
+  (e.g. `Contrast direction : log2( MPO / WT )`), whether or not
+  `--deseq_ref_level` is given, specifically so a reversed convention is
+  visible in the log instead of only discoverable by cross-checking raw
+  counts against a written report, as happened here. Threaded through the
+  Python wrapper (`NyaRNAthoDEG.py`) as `--deseq_ref_level`, including
+  `--dry_run` reporting and `run_summary.json`.
+- Verified directly against real HTSeq count data (not synthetic): with
+  `--deseq_ref_level WT`, `NtK326IBMCPv1C09-g573` (MPO counts 21/33/14 vs.
+  WT counts 0/2/4 -- MPO unambiguously higher) now correctly returns a
+  positive `log2FoldChange`, and p-values/padj are consistent with the
+  pre-fix run (only the sign changed, as expected -- the Wald test itself
+  is symmetric with respect to which level is called reference).
+
+### Note for prior runs
+
+Every past `DEG_annotated.csv` / report produced before this fix has
+`log2FoldChange` sign, and therefore every up/down label, reversed. No
+DESeq2 rerun is required to correct existing results -- negate
+`log2FoldChange` and swap "up"/"down" labels in place; p-values and padj
+are unaffected.
+
 ## [v0.1.2] — 2026-07-15
 
 ### Fixed
