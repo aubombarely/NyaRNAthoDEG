@@ -28,7 +28,7 @@ Example sample sheet:
   sampleC     7               /data/C.counts                       Stage2              L            2
 """
 
-VERSION = "v0.2.0"
+VERSION = "v0.2.1"
 
 import argparse, csv, getpass, json, os, platform, warnings
 import resource, shutil, subprocess, sys, time
@@ -90,15 +90,42 @@ def _require_tool(name: str) -> str:
 def _run(cmd: list, capture_stdout: bool = False,
          env: dict = None, cwd: Path = None) -> subprocess.CompletedProcess:
     _log(f"  $ {' '.join(str(c) for c in cmd)}")
-    result = subprocess.run(cmd,
-                            stdout=subprocess.PIPE if capture_stdout else None,
-                            stderr=subprocess.PIPE, text=True,
-                            env=env, cwd=cwd)
-    if result.returncode != 0:
-        print(f"ERROR: command failed (exit {result.returncode}):\n"
-              f"{result.stderr[-3000:]}", file=sys.stderr)
+    if capture_stdout:
+        # stdout is DATA the caller writes verbatim to a file (e.g. htseq-count
+        # counts) -- must stay byte-exact, so it's captured as before with no
+        # streaming/logging and no merging with stderr.
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                text=True, env=env, cwd=cwd)
+        if result.returncode != 0:
+            print(f"ERROR: command failed (exit {result.returncode}):\n"
+                  f"{result.stderr[-3000:]}", file=sys.stderr)
+            sys.exit(1)
+        return result
+
+    # stdout here is diagnostic/progress text for humans (e.g. the R script's
+    # own [1]..[10] step banners) -- previously inherited straight to the
+    # terminal via stdout=None and never reached Run_NyaRNAthoDEG.log, so
+    # anything a subprocess printed (including NyaRNAthoDEG_DESeq2.R's
+    # "Contrast direction" line -- added specifically so a reversed sign
+    # convention would be visible in the permanent log, not just live in a
+    # terminal someone may not have been watching) was lost from the log.
+    # Stream it line-by-line through _log() instead, so it's both still
+    # visible live and now actually recorded. stderr is merged into the same
+    # stream (R's own warnings/messages go there) so the on-error diagnostic
+    # below captures everything, not just half of it.
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                            text=True, env=env, cwd=cwd, bufsize=1)
+    captured_lines = []
+    for line in proc.stdout:
+        line = line.rstrip("\n")
+        captured_lines.append(line)
+        _log(f"    {line}")
+    proc.wait()
+    if proc.returncode != 0:
+        print(f"ERROR: command failed (exit {proc.returncode}):\n"
+              + "\n".join(captured_lines)[-3000:], file=sys.stderr)
         sys.exit(1)
-    return result
+    return subprocess.CompletedProcess(cmd, proc.returncode)
 
 
 # ── checkpoint ────────────────────────────────────────────────────────────────

@@ -1,5 +1,30 @@
 # Changelog
 
+## [v0.2.1] — 2026-08-17
+
+### Fixed
+
+- **Subprocess diagnostic output (including the new "Contrast direction"
+  line from v0.2.0) never reached `Run_NyaRNAthoDEG.log`.** `_run()`
+  invoked non-data-capturing commands (Module 7's R script, FastQC,
+  fastp, STAR, `samtools index`) with `stdout=None`, which inherits
+  straight to the terminal -- only the invoked command line itself was
+  ever written to the log, not anything the subprocess printed. Found
+  immediately after v0.2.0: a real rerun's `Run_NyaRNAthoDEG.log` had no
+  trace of the R script's own `[1]`..`[10]` step banners or its
+  "Contrast direction" confirmation, defeating the point of always
+  printing that line. Fixed by streaming stdout (with stderr merged in,
+  so R's own warnings/messages are captured too) line-by-line through
+  `_log()` as the subprocess runs -- still visible live in the terminal,
+  now also permanently recorded. The data-capturing path
+  (`capture_stdout=True`, used by `htseq-count` to write counts straight
+  to a file) is untouched -- verified directly that it still returns
+  stdout byte-exact with no log formatting or merged stderr, since that
+  path relies on `result.stdout` being written verbatim to
+  `{sample}.htseq.counts`. Also verified the streaming path captures
+  both stdout and stderr lines correctly, and that the on-error
+  diagnostic still surfaces the captured output before exiting.
+
 ## [v0.2.0] — 2026-08-17
 
 ### Fixed

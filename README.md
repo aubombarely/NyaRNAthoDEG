@@ -3,11 +3,11 @@
 </p>
 
 <p align="center">
-<img src="https://img.shields.io/badge/version-v0.2.0-teal"/>
+<img src="https://img.shields.io/badge/version-v0.2.1-teal"/>
 <img src="https://img.shields.io/badge/python-3.10%2B-blue"/>
 <img src="https://img.shields.io/badge/R-4.3%2B-276DC3"/>
 <img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey"/>
-<a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-v0.2.0-orange"/></a>
+<a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-v0.2.1-orange"/></a>
 </p>
 
 ---
@@ -172,7 +172,7 @@ python3 scripts/NyaRNAthoDEG.py \
 | `--deseq_design` | — | R formula string; column names must match condition columns in the sample sheet |
 | `--deseq_stratify` | *(none)* | Condition column to stratify by; runs one DESeq2 analysis per level |
 | `--deseq_contrast` | *(auto-inferred)* | Factor to contrast within each stratum; defaults to the other term in `--deseq_design` |
-| `--deseq_ref_level` | *(alphabetically first level)* | Reference/baseline level of the contrast factor (e.g. `WT`), so `log2FoldChange = log2(other_level / this_level)`. **Set this explicitly** — without it, R's `factor()` silently determines the reference alphabetically, which has caused real, backwards up/down calls in past reports (see [CHANGELOG v0.2.0](CHANGELOG.md)). The resolved direction is always printed to the log either way |
+| `--deseq_ref_level` | *(alphabetically first level)* | Reference/baseline level of the contrast factor (e.g. `WT`), so `log2FoldChange = log2(other_level / this_level)`. **Set this explicitly** — without it, R's `factor()` silently determines the reference alphabetically, which has caused real, backwards up/down calls in past reports (see [CHANGELOG v0.2.1](CHANGELOG.md)). The resolved direction is always printed to the log either way |
 
 #### Design examples
 
