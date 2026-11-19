@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-<img src="https://img.shields.io/badge/version-v0.4.0-teal"/>
+<img src="https://img.shields.io/badge/version-v0.5.0-teal"/>
 <img src="https://img.shields.io/badge/python-3.10%2B-blue"/>
 <img src="https://img.shields.io/badge/R-4.3%2B-276DC3"/>
 <img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey"/>
@@ -106,7 +106,7 @@ The sample sheet is a **tab-separated file** with the following columns:
 |---|---|---|
 | `SampleName` | yes | unique sample identifier |
 | `StartingModule` | yes | integer 1–7; module at which this sample enters the pipeline |
-| `FilePath` | yes | StartingModule 1–5: two comma-separated FASTQ paths (R1,R2) · StartingModule 6: one sorted BAM path · StartingModule 7: one HTSeq count file path |
+| `FilePath` | yes | StartingModule 1–5: one FASTQ path (single-end) **or** two comma-separated paths (R1,R2) for paired-end · StartingModule 6: one sorted BAM path · StartingModule 7: one HTSeq count file path |
 | `Replicate` | no | replicate ID; stored as metadata, not used in the DESeq2 design |
 | *any other columns* | no | treated as condition / covariate factors for DESeq2 (column names must match `--deseq_design`) |
 
@@ -114,10 +114,10 @@ The sample sheet is a **tab-separated file** with the following columns:
 
 | Value | Entry point | FilePath content |
 |---|---|---|
-| 1 | raw FASTQs → all modules | `R1.fastq.gz,R2.fastq.gz` |
-| 2 | raw FASTQs → skip FastQC pre | `R1.fastq.gz,R2.fastq.gz` |
-| 3 | clean FASTQs → skip FastQC pre + fastp | `R1.clean.fastq.gz,R2.clean.fastq.gz` |
-| 5 | clean FASTQs → skip QC; start at STAR | `R1.clean.fastq.gz,R2.clean.fastq.gz` |
+| 1 | raw FASTQs → all modules | `R1.fastq.gz,R2.fastq.gz` or `reads.fastq.gz` |
+| 2 | raw FASTQs → skip FastQC pre | `R1.fastq.gz,R2.fastq.gz` or `reads.fastq.gz` |
+| 3 | clean FASTQs → skip FastQC pre + fastp | `R1.clean.fastq.gz,R2.clean.fastq.gz` or `reads.clean.fastq.gz` |
+| 5 | clean FASTQs → skip QC; start at STAR | `R1.clean.fastq.gz,R2.clean.fastq.gz` or `reads.clean.fastq.gz` |
 | 6 | sorted BAM → start at HTSeq | `sample.bam` |
 | 7 | HTSeq count file → start at DESeq2 | `sample.counts` |
 
@@ -215,7 +215,7 @@ python3 scripts/NyaRNAthoDEG.py \
 
 | Option | Default | Description |
 |---|---|---|
-| `--htseq_stranded` | `no` | library strandedness: `yes`, `no`, or `reverse` |
+| `--htseq_stranded` | `no` | library strandedness: `yes`, `no`, or `reverse`. Detect it per experiment rather than assuming: `no` on a stranded library overcounts a few antisense overlaps, but `yes` on a reverse (dUTP) library discards most reads silently |
 | `--min_assigned_rate` | `0.5` | warn when a sample assigns a smaller fraction of its reads to features; the usual cause is a wrong `--htseq_stranded` |
 
 ### Differential expression / GO

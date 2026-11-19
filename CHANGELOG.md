@@ -1,5 +1,31 @@
 # Changelog
 
+## [v0.5.0] — 2026-11-19
+
+### Added
+
+- **Single-end support.** `FilePath` now takes either one FASTQ path
+  (single-end) or two comma-separated paths (R1,R2) for
+  `StartingModule <= 5`; the layout is detected per sample and reported
+  in the log. fastp drops `--in2`/`--out2` and `--detect_adapter_for_pe`
+  for single-end samples — that flag infers the adapter from read
+  overlap and means nothing without a mate — and STAR passes a single
+  file to `--readFilesIn`. FastQC runs on whatever reads exist, and
+  input validation no longer demands an R2. A sheet that mixes the two
+  layouts is processed correctly but warns, because library layout is a
+  batch effect and comparing single-end against paired-end samples in
+  one contrast is rarely sound.
+
+  This unblocks public data: a large share of the abiotic-stress RNA-seq
+  experiments in GEO are single-end and had to be discarded before.
+
+### Changed
+
+- The fastp and STAR command lines moved into `fastp_cmd()` and
+  `star_cmd()`, so both layouts can be tested without running either
+  tool. New regression suite: `test/regression/test_single_end.py`
+  (10 assertions).
+
 ## [v0.4.0] — 2026-11-19
 
 ### Added

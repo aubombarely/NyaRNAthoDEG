@@ -28,7 +28,7 @@ Example sample sheet:
   sampleC     7               /data/C.counts                       Stage2              L            2
 """
 
-VERSION = "v0.4.0"
+VERSION = "v0.5.0"
 
 import argparse, csv, getpass, json, os, platform, warnings
 import resource, shutil, subprocess, sys, time
@@ -190,9 +190,10 @@ def parse_sample_sheet(path: Path) -> tuple:
 
             file_paths = [Path(p.strip()) for p in row["FilePath"].split(",")]
 
-            if sm <= 5 and len(file_paths) != 2:
-                print(f"ERROR: '{name}' StartingModule={sm} requires two comma-separated "
-                      f"FASTQ paths (R1,R2) in FilePath", file=sys.stderr)
+            if sm <= 5 and len(file_paths) not in (1, 2):
+                print(f"ERROR: '{name}' StartingModule={sm} requires one FASTQ path "
+                      f"(single-end) or two comma-separated paths (R1,R2) in FilePath",
+                      file=sys.stderr)
                 sys.exit(1)
             if sm in (6, 7) and len(file_paths) != 1:
                 print(f"ERROR: '{name}' StartingModule={sm} requires exactly one file path "
@@ -208,8 +209,9 @@ def parse_sample_sheet(path: Path) -> tuple:
             }
 
             if sm <= 5:
-                s["r1"] = file_paths[0]
-                s["r2"] = file_paths[1]
+                s["r1"]     = file_paths[0]
+                s["r2"]     = file_paths[1] if len(file_paths) == 2 else None
+                s["layout"] = "PE" if s["r2"] is not None else "SE"
             elif sm == 6:
                 s["bam"] = file_paths[0]
             else:
@@ -221,7 +223,14 @@ def parse_sample_sheet(path: Path) -> tuple:
         print("ERROR: sample sheet is empty", file=sys.stderr)
         sys.exit(1)
 
+    layouts = {s["layout"] for s in samples if "layout" in s}
     _log(f"  Loaded {len(samples)} sample(s) from {path.name}")
+    if layouts:
+        _log(f"  Library layout    : {', '.join(sorted(layouts))}")
+    if layouts == {"SE", "PE"}:
+        _log("  WARNING: the sheet mixes single-end and paired-end samples. The "
+             "pipeline will process each correctly, but library layout is a batch "
+             "effect: comparing SE against PE samples in one contrast is rarely sound.")
     _log(f"  Condition columns : {', '.join(condition_cols) if condition_cols else 'none'}")
     for sm, n in sorted(Counter(s["starting_module"] for s in samples).items()):
         _log(f"  StartingModule={sm} : {n} sample(s)")
@@ -241,6 +250,7 @@ def run_fastqc(samples: list, outdir: Path, threads: int,
     for s in samples:
         pairs = ([(s["r1"], "R1"), (s["r2"], "R2")] if label == "pre"
                  else [(s["r1_clean"], "R1"), (s["r2_clean"], "R2")])
+        pairs = [(pth, tag) for pth, tag in pairs if pth is not None]
         for read_path, rn in pairs:
             stem = read_path.name
             for ext in (".fastq.gz", ".fastq", ".fq.gz", ".fq"):
@@ -255,6 +265,45 @@ def run_fastqc(samples: list, outdir: Path, threads: int,
 
 
 # ── module 2: fastp ───────────────────────────────────────────────────────────
+
+def fastp_cmd(fastp_bin: str, s: dict, fastp_dir: Path,
+              threads: int, min_length: int, quality: int) -> list:
+    """fastp command for one sample; paired-end only when the sample has an R2."""
+    name = s["sample_name"]
+    cmd  = [fastp_bin, "--in1", str(Path(s["r1"]).resolve()),
+            "--out1", str(fastp_dir / f"{name}_R1.clean.fastq.gz")]
+    if s.get("r2") is not None:
+        cmd += ["--in2",  str(Path(s["r2"]).resolve()),
+                "--out2", str(fastp_dir / f"{name}_R2.clean.fastq.gz")]
+    cmd += ["--html", str(fastp_dir / f"{name}_fastp.html"),
+            "--json", str(fastp_dir / f"{name}_fastp.json"),
+            "--thread",                  str(threads),
+            "--length_required",         str(min_length),
+            "--qualified_quality_phred", str(quality)]
+    if s.get("r2") is not None:
+        # paired-end only: fastp infers the adapter from read overlap
+        cmd.append("--detect_adapter_for_pe")
+    return cmd
+
+
+def star_cmd(star: str, s: dict, genome_dir: Path, sample_dir: Path,
+             threads: int, min_intron: int, max_intron: int) -> list:
+    """STAR command for one sample; --readFilesIn takes one or two files."""
+    reads = [str(s["r1_clean"])]
+    if s.get("r2_clean") is not None:
+        reads.append(str(s["r2_clean"]))
+    return [star,
+            "--runThreadN",            str(threads),
+            "--genomeDir",             str(genome_dir),
+            "--readFilesIn",           *reads,
+            "--readFilesCommand",      "zcat",
+            "--outSAMtype",            "BAM", "SortedByCoordinate",
+            "--outFileNamePrefix",     str(sample_dir) + "/",
+            "--outSAMattributes",      "NH", "HI", "AS", "NM",
+            "--alignIntronMin",        str(min_intron),
+            "--alignIntronMax",        str(max_intron),
+            "--outFilterMultimapNmax", "10"]
+
 
 def run_fastp(samples: list, workdir: Path, threads: int,
               min_length: int, quality: int, force: bool) -> None:
@@ -272,20 +321,10 @@ def run_fastp(samples: list, workdir: Path, threads: int,
         if sm <= 2:
             r1_out = fastp_dir / f"{name}_R1.clean.fastq.gz"
             if not _checkpoint(r1_out, f"fastp {name}", force):
-                r2_out = fastp_dir / f"{name}_R2.clean.fastq.gz"
-                _run([fastp_bin,
-                      "--in1",  str(s["r1"].resolve()),
-                      "--in2",  str(s["r2"].resolve()),
-                      "--out1", str(r1_out),
-                      "--out2", str(r2_out),
-                      "--html", str(fastp_dir / f"{name}_fastp.html"),
-                      "--json", str(fastp_dir / f"{name}_fastp.json"),
-                      "--thread",                  str(threads),
-                      "--length_required",         str(min_length),
-                      "--qualified_quality_phred", str(quality),
-                      "--detect_adapter_for_pe"])
+                _run(fastp_cmd(fastp_bin, s, fastp_dir, threads, min_length, quality))
             s["r1_clean"] = r1_out
-            s["r2_clean"] = fastp_dir / f"{name}_R2.clean.fastq.gz"
+            s["r2_clean"] = (fastp_dir / f"{name}_R2.clean.fastq.gz"
+                             if s.get("r2") is not None else None)
         elif sm <= 5:
             s["r1_clean"] = s["r1"]
             s["r2_clean"] = s["r2"]
@@ -321,18 +360,8 @@ def run_star(samples: list, genome_dir: Path, workdir: Path,
         sample_dir.mkdir(parents=True, exist_ok=True)
         bam = sample_dir / "Aligned.sortedByCoord.out.bam"
         if not _checkpoint(bam, f"STAR {name}", force):
-            _run([star,
-                  "--runThreadN",            str(threads),
-                  "--genomeDir",             str(genome_dir),
-                  "--readFilesIn",           str(s["r1_clean"]), str(s["r2_clean"]),
-                  "--readFilesCommand",      "zcat",
-                  "--outSAMtype",            "BAM", "SortedByCoordinate",
-                  "--outFileNamePrefix",     str(sample_dir) + "/",
-                  "--outSAMattributes",      "NH", "HI", "AS", "NM",
-                  "--alignIntronMin",        str(min_intron),
-                  "--alignIntronMax",        str(max_intron),
-                  "--outFilterMultimapNmax", "10"],
-                 cwd=sample_dir)
+            _run(star_cmd(star, s, genome_dir, sample_dir,
+                           threads, min_intron, max_intron), cwd=sample_dir)
             _run([samtools, "index", str(bam)])
         s["bam"] = bam
 
@@ -663,8 +692,9 @@ StartingModule values
     for s in samples:
         sm = s["starting_module"]
         if sm <= 5:
-            file_checks += [(f"r1 ({s['sample_name']})", s["r1"]),
-                            (f"r2 ({s['sample_name']})", s["r2"])]
+            file_checks.append((f"r1 ({s['sample_name']})", s["r1"]))
+            if s.get("r2") is not None:
+                file_checks.append((f"r2 ({s['sample_name']})", s["r2"]))
         elif sm == 6:
             file_checks.append((f"bam ({s['sample_name']})", s["bam"]))
         else:
