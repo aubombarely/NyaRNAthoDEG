@@ -123,8 +123,10 @@ with open(sample_sheet, "w", newline="") as fh:
     writer.writerow(["SampleName", "StartingModule", "FilePath",
                      "DevelopmentalStage", "Temperature", "Replicate"])
     for name, stage, temp, rep in SAMPLES:
-        fp = counts_dir / f"{name}.htseq.counts"
-        writer.writerow([name, 7, str(fp), stage, temp, rep])
+        # Relative to the repository root, where the quicktest is run from:
+        # absolute paths baked in at generation time do not survive a clone.
+        fp = f"test/htseq_counts/{name}.htseq.counts"
+        writer.writerow([name, 7, fp, stage, temp, rep])
 
 print(f"Sample sheet      → {sample_sheet.name}\n")
 

@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-<img src="https://img.shields.io/badge/version-v0.3.0-teal"/>
+<img src="https://img.shields.io/badge/version-v0.4.0-teal"/>
 <img src="https://img.shields.io/badge/python-3.10%2B-blue"/>
 <img src="https://img.shields.io/badge/R-4.3%2B-276DC3"/>
 <img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey"/>
@@ -216,6 +216,7 @@ python3 scripts/NyaRNAthoDEG.py \
 | Option | Default | Description |
 |---|---|---|
 | `--htseq_stranded` | `no` | library strandedness: `yes`, `no`, or `reverse` |
+| `--min_assigned_rate` | `0.5` | warn when a sample assigns a smaller fraction of its reads to features; the usual cause is a wrong `--htseq_stranded` |
 
 ### Differential expression / GO
 

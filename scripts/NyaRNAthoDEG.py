@@ -28,7 +28,7 @@ Example sample sheet:
   sampleC     7               /data/C.counts                       Stage2              L            2
 """
 
-VERSION = "v0.3.0"
+VERSION = "v0.4.0"
 
 import argparse, csv, getpass, json, os, platform, warnings
 import resource, shutil, subprocess, sys, time
@@ -365,6 +365,75 @@ def run_htseq(samples: list, gtf: Path, workdir: Path,
         s["count_file"] = count_file
 
 
+# ── count QC: how many reads actually reached a gene ─────────────────────────
+
+HTSEQ_SPECIAL = ("__no_feature", "__ambiguous", "__too_low_aQual",
+                 "__not_aligned", "__alignment_not_unique")
+
+
+def count_assignment_stats(count_file: Path) -> dict:
+    """Read an htseq-count file and report how many reads reached a feature.
+
+    htseq-count appends five summary rows (``__no_feature`` and friends) after
+    the per-gene counts. A run with the wrong ``--stranded`` value still writes
+    a complete file and still yields "significant" genes downstream, with
+    almost every read parked in ``__no_feature`` -- so the assignment rate is
+    the cheapest check that catches it.
+
+    Returns assigned/total read counts, the rate (``None`` when the file has no
+    summary rows, i.e. the total is unknown), and the largest loss category.
+    """
+    assigned = 0
+    special: dict = {k: 0 for k in HTSEQ_SPECIAL}
+    with open(count_file) as fh:
+        for line in fh:
+            if not line.strip():
+                continue
+            name, _, value = line.rstrip("\n").partition("\t")
+            try:
+                n = int(value)
+            except ValueError:
+                continue
+            if name.startswith("__"):
+                special[name] = special.get(name, 0) + n
+            else:
+                assigned += n
+    lost = sum(special.values())
+    total = assigned + lost
+    dominant = max(special, key=special.get) if lost else None
+    return {"assigned": assigned, "lost": lost, "total": total,
+            "rate": (assigned / total) if lost else None,
+            "by_category": special, "dominant_loss": dominant}
+
+
+def check_assignment_rates(samples: list, min_rate: float) -> list:
+    """Log the per-sample assignment rate and warn when it is implausibly low."""
+    low = []
+    _log("  Reads assigned to features:")
+    for s in samples:
+        cf = s.get("count_file")
+        if not cf or not Path(cf).exists():
+            continue
+        st = count_assignment_stats(Path(cf))
+        if st["rate"] is None:
+            _log(f"    {s['sample_name']:<24} {st['assigned']:>12,} assigned "
+                 f"(no summary rows; rate unknown)")
+            continue
+        _log(f"    {s['sample_name']:<24} {st['assigned']:>12,} / {st['total']:>12,} "
+             f"= {st['rate']*100:5.1f}%")
+        if st["rate"] < min_rate:
+            low.append((s["sample_name"], st))
+    for name, st in low:
+        _log(f"  WARNING: {name} assigned only {st['rate']*100:.1f}% of its reads "
+             f"(most lost to {st['dominant_loss']}).")
+    if low:
+        _log("  WARNING: a low assignment rate usually means the library "
+             "strandedness is wrong (--htseq_stranded: yes / no / reverse), "
+             "or the GTF does not match the genome the reads were aligned to. "
+             "DESeq2 will still run and still report significant genes.")
+    return low
+
+
 # ── module 7: DESeq2 + topGO (R) ─────────────────────────────────────────────
 
 def run_deseq2(samples: list, condition_cols: list,
@@ -526,6 +595,10 @@ StartingModule values
     ap.add_argument("--htseq_stranded", default="no",
                     choices=["yes", "no", "reverse"],
                     help="HTSeq strandedness (default: no)")
+    ap.add_argument("--min_assigned_rate", type=float, default=0.5,
+                    help="warn when a sample assigns a smaller fraction of its "
+                         "reads to features (default: 0.5); the usual cause is "
+                         "a wrong --htseq_stranded value")
 
     # DESeq2 thresholds / GO
     ap.add_argument("--padj",          type=float, default=0.05,
@@ -779,6 +852,11 @@ StartingModule values
         for s in samples:
             if s["starting_module"] <= 6:
                 s["count_file"] = htseq_dir / f"{s['sample_name']}.htseq.counts"
+
+    # ── Count QC: assignment rates (runs for provided count files too) ────────
+    if not args.skip_module7 and any(s.get("count_file") for s in samples):
+        _banner("Count QC — reads assigned to features")
+        check_assignment_rates(samples, args.min_assigned_rate)
 
     # ── Module 7: DESeq2 + topGO ──────────────────────────────────────────────
     if not args.skip_module7:

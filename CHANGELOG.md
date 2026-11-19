@@ -1,5 +1,36 @@
 # Changelog
 
+## [v0.4.0] — 2026-11-19
+
+### Added
+
+- **Count QC: the fraction of reads that actually reached a feature.**
+  After counting (and for sample sheets that supply count files directly,
+  `StartingModule == 7`), the pipeline reads htseq-count's `__no_feature`
+  and friends, logs an assignment rate per sample, and warns below
+  `--min_assigned_rate` (default 0.5), naming the dominant loss category.
+  The check exists because a wrong `--stranded` value is silent: the
+  counts file is complete, DESeq2 runs, and the "significant" genes it
+  returns come from the few percent of reads that happened to be
+  assigned. A master's thesis reviewed in this group had 11 % of genes
+  carrying counts for exactly this reason, and nothing in the pipeline
+  said so. New flag: `--min_assigned_rate`.
+
+### Fixed
+
+- **The bundled quicktest could not run from a fresh clone.**
+  `test/make_test_data.py` baked absolute paths into
+  `test/test_samples.tsv` at generation time, so the committed sheet
+  pointed at the directory layout of whoever last ran it. Both now use
+  paths relative to the repository root.
+
+### Changed
+
+- Strandedness guidance in the README: `no` stays the default because
+  the failure modes are asymmetric — `no` on a stranded library
+  overcounts a few antisense overlaps, while `yes` on a reverse-stranded
+  (dUTP) library discards most of the reads.
+
 ## [v0.3.0] — 2026-08-17
 
 ### Added
