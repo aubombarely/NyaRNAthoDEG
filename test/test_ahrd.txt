@@ -1,3 +1,5 @@
+# AHRD-Version 3.3.3
+
 Protein-Accession	Blast-Hit-Accession	AHRD-Quality-Code	Human-Readable-Description	InterPro-ID	Gene-Ontology-ID
 SMELv4.1_00001	sp|P00000|TEST	*	serine/threonine kinase 1		GO:0005737, GO:0006355
 SMELv4.1_00002	sp|P00001|TEST	*	ubiquitin ligase 2		GO:0005524, GO:0055114, GO:0006351

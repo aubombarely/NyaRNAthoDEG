@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-<img src="https://img.shields.io/badge/version-v0.2.1-teal"/>
+<img src="https://img.shields.io/badge/version-v0.3.0-teal"/>
 <img src="https://img.shields.io/badge/python-3.10%2B-blue"/>
 <img src="https://img.shields.io/badge/R-4.3%2B-276DC3"/>
 <img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey"/>
@@ -35,7 +35,7 @@ delivers expression results.
 | 4 | MultiQC | FastQC + fastp reports | aggregated QC report |
 | 5 | STAR | clean FASTQs + genome index | sorted, indexed BAM files |
 | 6 | HTSeq | BAM + GTF | per-sample gene count tables |
-| 7 | DESeq2 + topGO (R) | count tables + annotations | DEG tables, PCA, heatmap, UpSet, GO bubble plots |
+| 7 | DESeq2 + topGO (R) | count tables + annotations | DEG tables, volcano plots, PCA, heatmap, UpSet, GO bubble plots |
 
 Each module is independently checkpointed. Individual samples can enter the
 pipeline at any module via the `StartingModule` column in the sample sheet,
@@ -265,6 +265,7 @@ Per-sample entry points are controlled instead via `StartingModule` in the sampl
 │   │   ├── {prefix}_DEG_annotated.csv       normalized counts + DE results + annotations
 │   │   ├── {prefix}_sample_stats.tsv        per-sample library metrics (see below)
 │   │   ├── {prefix}_DEG_summary.tsv         per-comparison DEG counts (see below)
+│   │   ├── {prefix}_Volcano_{comparison}.pdf/.png  volcano plot per comparison
 │   │   ├── {prefix}_PCA.pdf/.png            PCA plot (VST-normalized)
 │   │   ├── {prefix}_SampleDist_heatmap.pdf  sample distance heatmap
 │   │   ├── {prefix}_UpSet.pdf               DEG overlap across strata

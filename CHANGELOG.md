@@ -1,5 +1,64 @@
 # Changelog
 
+## [v0.3.0] — 2026-08-17
+
+### Added
+
+- **Volcano plots, one per DESeq2 comparison.** Module 7 now writes
+  `{prefix}_Volcano_{comparison}.pdf/.png` for the full model and every
+  stratum, plotting log2FoldChange against -log10(padj) and coloring
+  points by significance/direction (blueprint palette: blue = up, red =
+  down, grey = not significant). Axis label and legend use the resolved
+  contrast direction (`--deseq_ref_level`, same mechanism as the
+  "Contrast direction" log line added in v0.2.0) when a two-level
+  contrast column was resolved, falling back to a generic
+  "log2 fold change" label otherwise. Added directly to
+  `NyaRNAthoDEG_DESeq2.R` as a new step between building the merged DEG
+  table and the PCA plot (existing steps 8-12 renumbered accordingly);
+  no new R package dependency (reuses `ggplot2`, already required).
+  Validated against the 500-gene synthetic test dataset: per-comparison
+  up/down point counts matched `{prefix}_DEG_summary.tsv` exactly for
+  the full model and both strata.
+
+### Fixed
+
+- **Module 7 crashed at the PCA step on datasets with fewer than 1,000
+  genes.** `vst()` samples `nsub` genes (default 1,000) to fit the
+  dispersion trend and stops with `less than 'nsub' rows` below that, so
+  the bundled 500-gene test dataset could never reach the PCA, heatmap
+  or UpSet plots. Module 7 now calls `.vst_safe()`, which uses
+  `varianceStabilizingTransformation()` under the threshold — DESeq2's
+  own recommendation — and logs which transform it used. Reported by
+  Sara Trigueros (2026-11-17).
+
+- **GOSEA tables were never written when a contrast had zero or one
+  significant GO term.** The cause was not the absence of enrichment but
+  a `GenTable()` quirk: with `topNodes = 1` topGO returns the statistic
+  column named `apply(l, 2, format.FUN, dig = 2, eps = 1e-30)` instead
+  of `Fishers`, so `gsea_tbl$Fishers` was `NULL` and the derived
+  `log10F` column failed with `replacement has 0 rows, data has 1`. The
+  error was swallowed by the surrounding `tryCatch`, leaving only a
+  warning in the log. `.gentable_fisher()` now names the statistic
+  column positionally, and a contrast with no significant term writes a
+  header-only table (and skips the bubble plot) instead of silently
+  reporting the best non-significant term. Reported by Sara Trigueros
+  (2026-11-17).
+
+- **`test/test_ahrd.txt` lost its header row and two genes.** Real AHRD
+  output begins with `# AHRD-Version ...` and a blank line, which is why
+  the reader used `skip=2`; the generated fixture started directly with
+  the header, so the pipeline logged `AHRD genes : 498` against
+  `FANTASIA genes : 500`. `make_test_data.py` now writes the preamble,
+  and the reader (`.read_ahrd()`) decides the skip from the file itself,
+  so a hand-built annotation without the preamble no longer loses its
+  first gene silently. Reported by Sara Trigueros (2026-11-17).
+
+### Changed
+
+- Shared helpers moved to `scripts/NyaRNAthoDEG_helpers.R`, sourced by
+  the DESeq2 module, so they can be exercised without running the
+  pipeline. New regression suite: `test/regression/test_bugfixes.R`.
+
 ## [v0.2.1] — 2026-08-17
 
 ### Fixed

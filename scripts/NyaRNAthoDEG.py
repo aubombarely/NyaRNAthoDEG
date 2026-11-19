@@ -28,7 +28,7 @@ Example sample sheet:
   sampleC     7               /data/C.counts                       Stage2              L            2
 """
 
-VERSION = "v0.2.1"
+VERSION = "v0.3.0"
 
 import argparse, csv, getpass, json, os, platform, warnings
 import resource, shutil, subprocess, sys, time

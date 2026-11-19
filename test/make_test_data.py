@@ -142,6 +142,9 @@ DESCRIPTIONS = [
 
 ahrd_file = HERE / "test_ahrd.txt"
 with open(ahrd_file, "w", newline="") as fh:
+    # Real AHRD output starts with a version comment and a blank line before
+    # the header; the pipeline reads the file with that preamble in mind.
+    fh.write("# AHRD-Version 3.3.3\n\n")
     writer = csv.writer(fh, delimiter="\t")
     writer.writerow(["Protein-Accession", "Blast-Hit-Accession",
                      "AHRD-Quality-Code", "Human-Readable-Description",

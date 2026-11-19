@@ -50,6 +50,14 @@ suppressPackageStartupMessages({
   library(UpSetR)
 })
 
+# Helpers (see scripts/NyaRNAthoDEG_helpers.R)
+.script_dir <- function() {
+  a <- commandArgs(trailingOnly = FALSE)
+  f <- sub("^--file=", "", a[grep("^--file=", a)])
+  if (length(f)) dirname(normalizePath(f)) else "."
+}
+source(file.path(.script_dir(), "NyaRNAthoDEG_helpers.R"))
+
 # ── CLI arguments ─────────────────────────────────────────────────────────────
 option_list <- list(
   make_option("--sample_info",    type="character", default=NULL),
@@ -215,7 +223,7 @@ if (!is.null(primary_contrast_col)) {
 
 # AHRD annotation: columns 1 (GeneID), 4 (Description), 6 (GO)
 # skip=2: line 1 is "# AHRD-Version X.Y" (comment), line 2 is blank, line 3 is the real header
-annot_ahrd_raw     <- read.delim(opt$annot_ahrd, skip=2, stringsAsFactors=FALSE)
+annot_ahrd_raw     <- .read_ahrd(opt$annot_ahrd)
 annot_by_hom_table <- annot_ahrd_raw[, c(1, 4, 6)]
 colnames(annot_by_hom_table) <- c("GeneID", "Description", "GO_by_Homol")
 
@@ -245,7 +253,7 @@ total_count <- sum(counts(dds_full))
 cat(sprintf("  Total genes  : %d\n", total_genes))
 cat(sprintf("  Total counts : %d\n", total_count))
 
-# Capture per-sample metrics before low-count filtering (used in section 11)
+# Capture per-sample metrics before low-count filtering (used in section 12)
 pre_raw_counts    <- colSums(counts(dds_full))
 pre_genes_detect  <- colSums(counts(dds_full) > 0)
 pre_genes_above   <- colSums(counts(dds_full) >= opt$min_counts)
@@ -332,9 +340,71 @@ write.csv(merge_tbl, out_csv, row.names=FALSE)
 cat(sprintf("  Written : %s\n", out_csv))
 
 
-# ── 7. PCA plot ───────────────────────────────────────────────────────────────
-cat("\n[7] PCA plot (VST)\n")
-vsdata   <- vst(dds_full, blind=FALSE)
+# ── 7. Volcano plots ──────────────────────────────────────────────────────────
+cat("\n[7] Volcano plots\n")
+
+.volcano_plot <- function(res_obj, label, ref_level, other_level, padj_thresh,
+                          output_dir, prefix) {
+  df <- as.data.frame(res_obj)
+  df <- df[!is.na(df$log2FoldChange) & !is.na(df$padj), ]
+  if (nrow(df) == 0) {
+    cat(sprintf("  %s : no genes with non-NA log2FoldChange/padj -- skipping\n", label))
+    return(invisible(NULL))
+  }
+  df$negLog10Padj <- -log10(pmax(df$padj, 1e-300))
+  df$Direction <- "Not significant"
+  df$Direction[df$padj < padj_thresh & df$log2FoldChange > 0] <- "Up"
+  df$Direction[df$padj < padj_thresh & df$log2FoldChange < 0] <- "Down"
+  n_up   <- sum(df$Direction == "Up")
+  n_down <- sum(df$Direction == "Down")
+  n_ns   <- sum(df$Direction == "Not significant")
+
+  if (!is.null(ref_level) && !is.null(other_level)) {
+    xlab_txt   <- sprintf("log2 fold change (%s / %s)", other_level, ref_level)
+    up_label   <- sprintf("Up in %s (n=%d)", other_level, n_up)
+    down_label <- sprintf("Down in %s (n=%d)", other_level, n_down)
+  } else {
+    xlab_txt   <- "log2 fold change"
+    up_label   <- sprintf("Up (n=%d)", n_up)
+    down_label <- sprintf("Down (n=%d)", n_down)
+  }
+  ns_label <- sprintf("Not significant (n=%d)", n_ns)
+  df$Direction <- factor(df$Direction,
+                         levels=c("Not significant", "Down", "Up"),
+                         labels=c(ns_label, down_label, up_label))
+
+  fig <- ggplot(df, aes(x=log2FoldChange, y=negLog10Padj, color=Direction)) +
+    geom_point(size=1, alpha=0.6) +
+    scale_color_manual(values=setNames(
+      c("#888888", "#E8604C", "#4C9BE8"),
+      c(ns_label, down_label, up_label))) +
+    geom_hline(yintercept=-log10(padj_thresh), linetype="dashed",
+               color="black", linewidth=0.4) +
+    geom_vline(xintercept=0, linetype="dashed", color="black", linewidth=0.4) +
+    xlab(xlab_txt) + ylab("-log10(padj)") +
+    ggtitle(sprintf("Volcano plot — %s", label)) +
+    theme_bw(base_size=12) +
+    theme(legend.title=element_blank(), legend.position="right")
+
+  out_base <- file.path(output_dir, sprintf("%s_Volcano_%s", prefix,
+                                            gsub("[^A-Za-z0-9]", "", label)))
+  ggsave(paste0(out_base, ".pdf"), fig, width=7, height=6)
+  ggsave(paste0(out_base, ".png"), fig, width=7, height=6, dpi=150)
+  cat(sprintf("  %s : %d up / %d down / %d not significant -- written %s.pdf / .png\n",
+              label, n_up, n_down, n_ns, out_base))
+}
+
+.volcano_plot(res_full, "Full_model", ref_level, other_level, opt$padj,
+             opt$output_dir, opt$prefix)
+for (stratum in names(strat_res_list)) {
+  .volcano_plot(strat_res_list[[stratum]], as.character(stratum),
+               ref_level, other_level, opt$padj, opt$output_dir, opt$prefix)
+}
+
+
+# ── 8. PCA plot ───────────────────────────────────────────────────────────────
+cat("\n[8] PCA plot (VST)\n")
+vsdata   <- .vst_safe(dds_full, blind=FALSE)
 pca_data <- plotPCA(vsdata, intgroup=condition_cols, returnData=TRUE)
 pct_var  <- round(100 * attr(pca_data, "percentVar"))
 
@@ -351,8 +421,8 @@ ggsave(paste0(pca_base, ".png"), pca_fig, width=7, height=5, dpi=150)
 cat(sprintf("  Written : %s.pdf / .png\n", pca_base))
 
 
-# ── 8. Sample distance heatmap ────────────────────────────────────────────────
-cat("\n[8] Sample distance heatmap\n")
+# ── 9. Sample distance heatmap ────────────────────────────────────────────────
+cat("\n[9] Sample distance heatmap\n")
 sample_dists <- dist(t(assay(vsdata)))
 dist_matrix  <- as.matrix(sample_dists)
 row_labels   <- apply(as.data.frame(colData(vsdata)[, condition_cols, drop=FALSE]),
@@ -372,8 +442,8 @@ invisible(dev.off())
 cat(sprintf("  Written : %s\n", heatmap_path))
 
 
-# ── 9. UpSet plot ─────────────────────────────────────────────────────────────
-cat("\n[9] UpSet plot\n")
+# ── 10. UpSet plot ────────────────────────────────────────────────────────────
+cat("\n[10] UpSet plot\n")
 sig_gene_lists <- list()
 
 if (length(strat_res_list) > 0) {
@@ -411,7 +481,7 @@ if (length(sig_gene_lists) >= 2) {
 }
 
 
-# ── 10. topGO enrichment ──────────────────────────────────────────────────────
+# ── 11. topGO enrichment ──────────────────────────────────────────────────────
 
 .bubble_plot <- function(tbl, fig_title) {
   tbl$log10F <- suppressWarnings(as.numeric(tbl$log10F))
@@ -444,17 +514,23 @@ if (length(sig_gene_lists) >= 2) {
                       annot=annFUN.gene2GO, gene2GO=geneID2GO)
       gsea_res <- runTest(GOdata, statistic="fisher")
       pval_df  <- as.data.frame(score(gsea_res))
-      topnodes <- max(1L, sum(pval_df < go_pval))
-      gsea_tbl <- GenTable(GOdata, Fishers=gsea_res,
-                           useLevels=TRUE, topNodes=topnodes)
+      n_sig    <- sum(pval_df < go_pval, na.rm=TRUE)
+      topnodes <- max(1L, n_sig)
+      gsea_tbl <- .gentable_fisher(GOdata, gsea_res, topnodes)
       gsea_tbl$log10F <- -log10(suppressWarnings(as.numeric(gsea_tbl$Fishers)))
+      if (n_sig == 0L) {
+        # No term passes the threshold: write the table with its header and no
+        # rows rather than the best non-significant term, and skip the plot.
+        cat(sprintf("      No GO term below p < %g; writing an empty table\n", go_pval))
+        gsea_tbl <- gsea_tbl[0, , drop=FALSE]
+      }
 
       out_base <- file.path(output_dir,
         sprintf("%s_GOSEA_%s_%s_%s", prefix, annot_label, go_cat, grp_tag))
       write.table(gsea_tbl, paste0(out_base, "_table.txt"),
                   sep="\t", quote=FALSE, row.names=FALSE)
 
-      fig <- .bubble_plot(gsea_tbl, fig_title)
+      fig <- if (nrow(gsea_tbl) > 0) .bubble_plot(gsea_tbl, fig_title) else NULL
       if (!is.null(fig)) {
         h <- max(4, nrow(gsea_tbl) * 0.3 + 2)
         pdf(paste0(out_base, ".pdf"), width=10, height=h)
@@ -470,7 +546,7 @@ if (length(sig_gene_lists) >= 2) {
   }
 }
 
-cat("\n[10] topGO enrichment analysis\n")
+cat("\n[11] topGO enrichment analysis\n")
 
 if (length(sig_gene_lists) > 0) {
   cat("  >> Homology-based GO annotations\n")
@@ -499,8 +575,8 @@ if (length(sig_gene_lists) > 0) {
 }
 
 
-# ── 11. Summary tables ────────────────────────────────────────────────────────
-cat("\n[11] Writing summary tables\n")
+# ── 12. Summary tables ────────────────────────────────────────────────────────
+cat("\n[12] Writing summary tables\n")
 
 # — 11a. Per-sample statistics —
 sf_vec  <- sizeFactors(dds_full)

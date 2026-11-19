@@ -124,3 +124,10 @@ python3 scripts/NyaRNAthoDEG.py \
     --skip_module4 --skip_module5 --skip_module6 \
     --dry_run
 ```
+
+## Regression tests
+
+`Rscript test/regression/test_bugfixes.R` checks the three bugs fixed in
+v0.3.0: VST on a sub-1,000-gene dataset, `GenTable()` at `topNodes = 1`,
+and the AHRD fixture's two-line preamble. It needs DESeq2 and topGO, runs
+in a few seconds, and exits non-zero on failure.
